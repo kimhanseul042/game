@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>카메라 시점 — Game Design Guide</title>
+
+<!-- 폰트 -->
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&family=Fredoka+One&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#ffffff;
+    --muted:#6b6b6b;
+    --accent-1:#bae7ff;
+    --accent-2:#ffdfe8;
+    --card-bg:#fffaf9;
+    --card-shadow: 0 10px 18px rgba(30,30,30,0.06);
+    --radius:18px;
+  }
+
+  html,body{height:100%; margin:0; background:var(--bg); font-family:'Gowun Dodum',sans-serif; color:#222;}
+
+  /* 네비게이션 */
+  .navbar{
+    position:sticky; top:0; z-index:120; background:rgba(255,255,255,0.95);
+    border-bottom:1px solid #f0f0f0; padding:14px 24px;
+    backdrop-filter: blur(4px);
+  }
+  .nav-inner{max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between;}
+  .logo{font-family:'Fredoka One',sans-serif; color:#333; font-size:1.2rem; text-decoration:none;}
+  .nav-links{display:flex; gap:18px; align-items:center; margin:0; padding:0; list-style:none;}
+  .nav-links a{color:var(--muted); text-decoration:none; font-weight:600;}
+  .nav-links a:hover{color:#111; text-decoration:underline;}
+
+  /* 헤더 */
+  header{
+    text-align:center; padding:120px 20px 70px;
+    background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+    border-radius:0 0 28px 28px; margin-bottom:36px;
+  }
+  header h1{margin:0; font-family:'Jua',sans-serif; font-size:2.8rem; color:#19324a;}
+  header p{margin:12px 0 0; color:var(--muted); font-size:1.05rem;}
+
+  /* 소개 섹션 */
+  #intro { max-width:1100px; margin:0 auto; padding:20px; margin-bottom:50px;}
+  #intro h2 { font-family:'Jua',sans-serif; font-size:1.8rem; margin-bottom:15px; color:#1b2b3a;}
+  .intro-box {
+    background:#fffaf9; border-radius:18px; padding:22px 26px; line-height:1.7;
+    box-shadow:0 10px 18px rgba(30,30,30,0.06);
+  }
+
+  /* 카드 섹션 */
+  .container{max-width:1100px; margin:0 auto; padding:0 20px;}
+  .card-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:28px; margin:12px 0 80px;}
+  @media (max-width:980px){ .card-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:640px){ .card-grid{grid-template-columns:1fr;} }
+
+  .category-card{
+    display:block; position:relative; overflow:visible;
+    background:var(--card-bg); border-radius:var(--radius);
+    box-shadow:var(--card-shadow); padding:22px; text-decoration:none; color:inherit;
+    transition:transform .28s, box-shadow .28s;
+    min-height:190px; opacity:0; transform:translateY(18px);
+    animation:cardIn .6s forwards;
+  }
+  .category-card:hover{ transform:translateY(-8px); box-shadow:0 20px 30px rgba(30,30,30,0.09); }
+  .category-card:nth-child(1){ animation-delay:0.12s; }
+  .category-card:nth-child(2){ animation-delay:0.18s; }
+  .category-card:nth-child(3){ animation-delay:0.24s; }
+  .category-card:nth-child(4){ animation-delay:0.30s; }
+  .category-card:nth-child(5){ animation-delay:0.36s; }
+  .category-card:nth-child(6){ animation-delay:0.42s; }
+  .category-card:nth-child(7){ animation-delay:0.48s; }
+  .category-card:nth-child(8){ animation-delay:0.54s; }
+  .category-card:nth-child(9){ animation-delay:0.60s; }
+  .category-card:nth-child(10){ animation-delay:0.66s; }
+  .category-card:nth-child(11){ animation-delay:0.72s; }
+  .category-card:nth-child(12){ animation-delay:0.78s; }
+
+  @keyframes cardIn{ to{ opacity:1; transform:translateY(0); } }
+
+  .card-head{display:flex; align-items:center; gap:14px;}
+  .card-emoji{font-size:2.1rem; width:56px; height:56px; display:flex; align-items:center; justify-content:center; border-radius:12px; background:rgba(255,255,255,0.6);}
+  .card-title{font-family:'Jua',sans-serif; font-size:1.25rem; margin:0;}
+  .card-sub{font-size:0.95rem; color:var(--muted); margin-top:8px;}
+  .genre-list{margin-top:14px; display:flex; flex-wrap:wrap; gap:8px;}
+  .genre-chip{background:#fff; padding:6px 10px; border-radius:999px; font-size:0.9rem; color:#444; border:1px solid #f1efef;}
+
+  .overlay{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(180deg, rgba(0,0,0,0.0), rgba(0,0,0,0.45));
+    border-radius:var(--radius);
+    opacity:0; pointer-events:none; transition:opacity .28s;
+  }
+  .category-card:hover .overlay{ opacity:1; }
+  .overlay-inner{padding:18px; text-align:center; color:#fff; max-width:86%;}
+
+  /* 카드 컬러 구분 */
+  .c-fpv .card-emoji{background:linear-gradient(135deg,#ffd2d2,#ffdfe0);}
+  .c-tpv .card-emoji{background:linear-gradient(135deg,#d3f1ff,#dce8ff);}
+  .c-quarter .card-emoji{background:linear-gradient(135deg,#fff2d6,#fff7e6);}
+  .c-top .card-emoji{background:linear-gradient(135deg,#e6fddf,#f0ffe6);}
+  .c-iso .card-emoji{background:linear-gradient(135deg,#f3e6ff,#fdeaff);}
+  .c-side .card-emoji{background:linear-gradient(135deg,#ffe0b2,#ffd180);}
+  .c-free .card-emoji{background:linear-gradient(135deg,#c1f0f6,#93e5f9);}
+  .c-fixed .card-emoji{background:linear-gradient(135deg,#f8c1ff,#fbc7ff);}
+  .c-bird .card-emoji{background:linear-gradient(135deg,#d5ffb2,#b2ff99);}
+  .c-ortho .card-emoji{background:linear-gradient(135deg,#ffc1c1,#ff9a9a);}
+  .c-cinema .card-emoji{background:linear-gradient(135deg,#c1d8ff,#95b3ff);}
+  .c-topshoot .card-emoji{background:linear-gradient(135deg,#fffb8f,#fff76f);}
+
+  footer{ text-align:center; color:var(--muted); padding:36px 20px; font-size:0.95rem; }
+</style>
+</head>
+<body>
+
+  <!-- 네비 -->
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a class="logo" href="index.html">GameDesign</a>
+      <ul class="nav-links">
+        <li><a href="index.html">홈</a></li>
+        <li><a href="#categories">카메라 시점</a></li>
+        <li><a href="about.html">소개</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- 헤더 -->
+  <header>
+    <h1>🎥 카메라 시점 소개</h1>
+    <p><a href="index.html">← 메인으로 돌아가기</a></p>
+  </header>
+
+  <!-- 소개 섹션 -->
+<section id="intro">
+  <h2>카메라 시점이란 모에요~?</h2>
+  <div class="intro-box">
+    게임에서 카메라 시점은 플레이어가 보는 시야를 정의해요~.<br>
+    시점에 따라 몰입감, 조작감, 전략적 판단이 달라지며<br>
+    게임 경험 전체에 큰 영향을 준답니다~
+  </div>
+</section>
+
+  <!-- 카드 섹션 -->
+  <main class="container" id="categories">
+
+    <div class="card-grid">
+
+      <!-- 1: 1인칭 -->
+      <a class="category-card c-fpv" href="#" aria-label="1인칭 시점">
+        <div class="card-head">
+          <div class="card-emoji">👀</div>
+          <div>
+            <p class="card-title">1인칭 시점 (FPV)</p>
+            <p class="card-sub">플레이어 몰입감 최고</p>
+          </div>
+        </div>
+        <div class="genre-list" aria-hidden="true">
+          <span class="genre-chip">FPS</span>
+          <span class="genre-chip">어드벤처</span>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>1인칭 시점</h4>
+            <p>캐릭터의 눈을 통해 직접 보는 시점. 몰입감이 가장 강함.</p>
+          </div>
+        </div>
+      </a>
+
+      <!-- 2: 3인칭 -->
+      <a class="category-card c-tpv" href="#" aria-label="3인칭 시점">
+        <div class="card-head">
+          <div class="card-emoji">🧍</div>
+          <div>
+            <p class="card-title">3인칭 시점 (TPV)</p>
+            <p class="card-sub">주변 인지 용이</p>
+          </div>
+        </div>
+        <div class="genre-list" aria-hidden="true">
+          <span class="genre-chip">액션</span>
+          <span class="genre-chip">RPG</span>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>3인칭 시점</h4>
+            <p>캐릭터 뒤나 옆에서 보는 시점. 주변 시야가 넓고 공간 인지가 용이함.</p>
+          </div>
+        </div>
+      </a>
+
+      <!-- 3: 쿼터뷰 -->
+      <a class="category-card c-quarter" href="#" aria-label="쿼터뷰">
+        <div class="card-head">
+          <div class="card-emoji">🛡️</div>
+          <div>
+            <p class="card-title">쿼터뷰 (Quarter View)</p>
+            <p class="card-sub">2.5D 비스듬 시점</p>
+          </div>
+        </div>
+        <div class="genre-list" aria-hidden="true">
+          <span class="genre-chip">디아블로</span>
+          <span class="genre-chip">롤</span>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>쿼터뷰</h4>
+            <p>위에서 약간 비스듬히 내려다보는 2.5D 시점입니다.</p>
+          </div>
+        </div>
+      </a>
+
+      <!-- 4: 탑뷰 -->
+      <a class="category-card c-top" href="#" aria-label="탑뷰">
+        <div class="card-head">
+          <div class="card-emoji">🔝</div>
+          <div>
+            <p class="card-title">탑뷰 (Top View)</p>
+            <p class="card-sub">완전 위 시점</p>
+          </div>
+        </div>
+        <div class="genre-list" aria-hidden="true">
+          <span class="genre-chip">RTS</span>
+          <span class="genre-chip">전략</span>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>탑뷰</h4>
+            <p>완전히 위에서 내려다보는 시점. 전체 공간 파악에 좋음.</p>
+          </div>
+        </div>
+      </a>
+
+      <!-- 5: 아이소메트릭 -->
+      <a class="category-card c-iso" href="#" aria-label="아이소메트릭">
+        <div class="card-head">
+          <div class="card-emoji">📐</div>
+          <div>
+            <p class="card-title">아이소메트릭 (Isometric)</p>
+            <p class="card-sub">2.5D 평행투영</p>
+          </div>
+        </div>
+        <div class="genre-list" aria-hidden="true">
+          <span class="genre-chip">디아블로2</span>
+          <span class="genre-chip">하베스트문</span>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>아이소메트릭</h4>
+            <p>평행투영 기반의 2.5D 시점. 공간 구조가 명확함.</p>
+          </div>
+        </div>
+      </a>
+
+      <!-- 6: 사이드뷰 -->
+      <a class="category-card c-side" href="#" aria-label="사이드뷰">
+        <div class="card-head">
+          <div class="card-emoji">↔️</div>
+          <div>
+            <p class="card-title">사이드뷰 (Side View)</p>
+            <p class="card-sub">횡스크롤 시점</p>
+          </div>
+        </div>
+        <div class="genre-list" aria-hidden="true">
+          <span class="genre-chip">슈퍼마리오</span>
+          <span class="genre-chip">컵헤드</span>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>사이드뷰</h4>
+            <p>옆에서 보는 횡스크롤 시점.</p>
+          </div>
+        </div>
+      </a>
+
+      <!-- 7: 프리 카메라 -->
+      <a class="category-card c-free" href="#" aria-label="프리 카메라">
+        <div class="card-head">
+          <div class="card-emoji">🆓</div>
+          <div>
+            <p class="card-title">프리 카메라</p>
+            <p class="card-sub">자유 조작 가능</p>
+          </div>
+        </div>
+        <div class="genre-list" aria-hidden="true">
+          <span class="genre-chip">GTA5</span>
+          <span class="genre-chip">젤다 BOTW</span>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>프리 카메라</h4>
+            <p>플레이어가 자유롭게 카메라를 조작 가능.</p>
+          </div>
+        </div>
+      </a>
+
+      <!-- 8: 픽스드 카메라 -->
+      <a class="category-card c-fixed" href="#" aria-label="픽스드 카메라">
+        <div class="card-head">
+          <div class="card-emoji">📌</div>
+          <div>
+            <p class="card-title">픽스드 카메라</p>
+            <p class="card-sub">고정 위치 시점</p>
+          </div>
+        </div>
+        <div class="genre-list" aria-hidden="true">
+          <span class="genre-chip">클래식 호러</span>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>픽스드 카메라</h4>
+            <p>카메라가 특정 위치로 고정된 시점.</p>
+          </div>
+        </div>
+      </a>
+
+      <!-- 9: 버드아이 뷰 -->
+      <a class="category-card c-bird" href="#" aria-label="버드아이 뷰">
+        <div class="card-head">
+          <div class="card-emoji">🦅</div>
+          <div>
+            <p class="card-title">버드아이 뷰</p>
+            <p class="card-sub">하늘 시점</p>
+          </div>
+        </div>
+        <div class="genre-list" aria-hidden="true">
+          <span class="genre-chip">심시티</span>
+          <span class="genre-chip">AoE</span>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>버드아이 뷰</h4>
+            <p>새가 하늘에서 내려다보는 넓은 시점.</p>
+          </div>
+        </div>
+      </a>
+
+      <!-- 10: 등각 시점 -->
+      <a class="category-card c-ortho" href="#" aria-label="등각 시점">
+        <div class="card-head">
+          <div class="card-emoji">📏</div>
+          <div>
+            <p class="card-title">등각 시점 (Orthographic)</p>
+            <p class="card-sub">원근 없는 평면 뷰</p>
+          </div>
+        </div>
+        <div class="genre-list" aria-hidden="true">
+          <span class="genre-chip">문명 시리즈</span>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>등각 시점</h4>
+            <p>원근이 없는 평면 시점. 전략·보드게임에서 주로 사용.</p>
+          </div>
+        </div>
+      </a>
+
+      <!-- 11: 시네마틱 시점 -->
+      <a class="category-card c-cinema" href="#" aria-label="시네마틱 시점">
+        <div class="card-head">
+          <div class="card-emoji">🎬</div>
+          <div>
+            <p class="card-title">시네마틱 시점</p>
+            <p class="card-sub">영화 연출용</p>
+          </div>
+        </div>
+        <div class="genre-list" aria-hidden="true">
+          <span class="genre-chip">언차티드</span>
+          <span class="genre-chip">라오어</span>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>시네마틱 시점</h4>
+            <p>영화처럼 연출된 카메라 시점. 컷신이나 연출에 사용.</p>
+          </div>
+        </div>
+      </a>
+
+      <!-- 12: 탑다운 슈팅 -->
+      <a class="category-card c-topshoot" href="#" aria-label="탑다운 슈팅">
+        <div class="card-head">
+          <div class="card-emoji">💥</div>
+          <div>
+            <p class="card-title">탑다운 슈팅</p>
+            <p class="card-sub">위에서 사방 공격</p>
+          </div>
+        </div>
+        <div class="genre-list" aria-hidden="true">
+          <span class="genre-chip">엔터 더 건전</span>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>탑다운 슈팅</h4>
+            <p>위에서 본 시점으로 사방으로 공격하는 형태입니다.</p>
+          </div>
+        </div>
+      </a>
+
+    </div>
+  </main>
+
+  <footer>
+    © 2025 Game Design Guide — Joyful Edition
+  </footer>
+
+</body>
+</html>
