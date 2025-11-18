@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>👁 게임 그래픽 종류 — Game Design Guide</title>
+
+<!-- 폰트 -->
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&family=Fredoka+One&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#ffffff;
+    --muted:#6b6b6b;
+    --accent-1:#bae7ff;
+    --accent-2:#ffdfe8;
+    --card-bg:#fffaf9;
+    --card-shadow: 0 10px 18px rgba(30,30,30,0.06);
+    --radius:18px;
+  }
+
+  html,body{height:100%; margin:0; background:var(--bg); font-family:'Gowun Dodum',sans-serif; color:#222;}
+
+  /* 네비게이션 */
+  .navbar{
+    position:sticky; top:0; z-index:120; background:rgba(255,255,255,0.95);
+    border-bottom:1px solid #f0f0f0; padding:14px 24px;
+    backdrop-filter: blur(4px);
+  }
+  .nav-inner{max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between;}
+  .logo{font-family:'Fredoka One',sans-serif; color:#333; font-size:1.2rem; text-decoration:none;}
+  .nav-links{display:flex; gap:18px; align-items:center; margin:0; padding:0; list-style:none;}
+  .nav-links a{color:var(--muted); text-decoration:none; font-weight:600;}
+  .nav-links a:hover{color:#111; text-decoration:underline;}
+
+  /* 헤더 */
+  header{
+    text-align:center; padding:120px 20px 70px;
+    background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+    border-radius:0 0 28px 28px; margin-bottom:36px;
+  }
+  header h1{margin:0; font-family:'Jua',sans-serif; font-size:2.8rem; color:#19324a;}
+  header p{margin:12px 0 0; color:var(--muted); font-size:1.05rem;}
+
+  /* 소개 섹션 */
+  #intro { max-width:1100px; margin:0 auto; padding:20px; margin-bottom:50px;}
+  #intro h2 { font-family:'Jua',sans-serif; font-size:1.8rem; margin-bottom:15px; color:#1b2b3a;}
+  .intro-box {
+    background:var(--card-bg); border-radius:var(--radius); padding:22px 26px; line-height:1.7;
+    box-shadow:var(--card-shadow);
+  }
+
+  /* 카드형 레이아웃 */
+  .container{max-width:1100px; margin:0 auto; padding:0 20px;}
+  .card-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:28px; margin:12px 0 80px;}
+  @media (max-width:980px){ .card-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width:640px){ .card-grid{grid-template-columns:1fr;} }
+
+  .category-card{
+    display:block; position:relative; overflow:visible;
+    background:var(--card-bg); border-radius:var(--radius);
+    box-shadow:var(--card-shadow); padding:22px; text-decoration:none; color:inherit;
+    transition:transform .28s, box-shadow .28s;
+    min-height:190px; opacity:0; transform:translateY(18px);
+    animation:cardIn .6s forwards;
+  }
+  .category-card:hover{ transform:translateY(-8px); box-shadow:0 20px 30px rgba(30,30,30,0.09); }
+
+  @keyframes cardIn{ to{ opacity:1; transform:translateY(0); } }
+
+  .card-head{display:flex; align-items:center; gap:14px;}
+  .card-emoji{font-size:2.1rem; width:56px; height:56px; display:flex; align-items:center; justify-content:center; border-radius:12px; background:rgba(255,255,255,0.6);}
+  .card-title{font-family:'Jua',sans-serif; font-size:1.25rem; margin:0;}
+  .card-sub{font-size:0.95rem; color:var(--muted); margin-top:8px;}
+  .genre-list{margin-top:14px; display:flex; flex-wrap:wrap; gap:8px;}
+  .genre-chip{background:#fff; padding:6px 10px; border-radius:999px; font-size:0.9rem; color:#444; border:1px solid #f1efef;}
+
+  .overlay{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(180deg, rgba(0,0,0,0.0), rgba(0,0,0,0.45));
+    border-radius:var(--radius);
+    opacity:0; pointer-events:none; transition:opacity .28s;
+  }
+  .category-card:hover .overlay{ opacity:1; }
+  .overlay-inner{padding:18px; text-align:center; color:#fff; max-width:86%;}
+
+  /* 카드 컬러 구분 */
+  .c-2d .card-emoji{background:linear-gradient(135deg,#ffd2d2,#ffdfe0);}
+  .c-pixel .card-emoji{background:linear-gradient(135deg,#d3f1ff,#dce8ff);}
+  .c-vector .card-emoji{background:linear-gradient(135deg,#fff2d6,#fff7e6);}
+  .c-dot .card-emoji{background:linear-gradient(135deg,#e6fddf,#f0ffe6);}
+  .c-3d .card-emoji{background:linear-gradient(135deg,#f3e6ff,#fdeaff);}
+  .c-real .card-emoji{background:linear-gradient(135deg,#ffe0b2,#ffd180);}
+  .c-cel .card-emoji{background:linear-gradient(135deg,#c1f0f6,#93e5f9);}
+  .c-low .card-emoji{background:linear-gradient(135deg,#f8c1ff,#fbc7ff);}
+  .c-high .card-emoji{background:linear-gradient(135deg,#d5ffb2,#b2ff99);}
+  .c-pre .card-emoji{background:linear-gradient(135deg,#ffc1c1,#ff9a9a);}
+  .c-2half .card-emoji{background:linear-gradient(135deg,#c1d8ff,#95b3ff);}
+  .c-stylized .card-emoji{background:linear-gradient(135deg,#fffb8f,#fff76f);}
+
+  footer{ text-align:center; color:var(--muted); padding:36px 20px; font-size:0.95rem; }
+</style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-inner">
+      <a class="logo" href="index.html">GameDesign</a>
+      <ul class="nav-links">
+        <li><a href="index.html">홈</a></li>
+        <li><a href="#categories">그래픽 종류</a></li>
+        <li><a href="about.html">소개</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header>
+    <h1>👁 게임 그래픽 종류 소개</h1>
+    <p><a href="index.html">← 메인으로 돌아가기</a></p>
+  </header>
+
+  <section id="intro">
+    <h2>그래픽 종류란모에요~?</h2>
+    <div class="intro-box">
+      게임에서 사용되는 그래픽은 2D, 3D 등 다양한 방식으로 표현되고있어요~.<br>
+      종류에 따라 게임의 분위기, 몰입감, 시각적 전략이 달라져용~
+    </div>
+  </section>
+
+  <main class="container" id="categories">
+    <div class="card-grid">
+
+      <a class="category-card c-2d" href="#" aria-label="2D 그래픽">
+        <div class="card-head">
+          <div class="card-emoji">🖼️</div>
+          <div>
+            <p class="card-title">2D 그래픽</p>
+            <p class="card-sub">평면 그래픽</p>
+          </div>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>2D 그래픽</h4>
+            <p>평면으로 표현되는 그래픽. 픽셀아트, 손그림 스타일 등.</p>
+          </div>
+        </div>
+      </a>
+
+      <a class="category-card c-pixel" href="#" aria-label="픽셀 아트">
+        <div class="card-head">
+          <div class="card-emoji">🎨</div>
+          <div>
+            <p class="card-title">픽셀 아트</p>
+            <p class="card-sub">레트로 감성</p>
+          </div>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>픽셀 아트</h4>
+            <p>작은 픽셀 단위로 이미지 표현. 슈퍼마리오, 스타듀밸리.</p>
+          </div>
+        </div>
+      </a>
+
+      <a class="category-card c-vector" href="#" aria-label="벡터 그래픽">
+        <div class="card-head">
+          <div class="card-emoji">📐</div>
+          <div>
+            <p class="card-title">벡터 그래픽</p>
+            <p class="card-sub">확대해도 깨지지 않음</p>
+          </div>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>벡터 그래픽</h4>
+            <p>선과 면의 수학적 계산으로 만들어 확대해도 깨지지 않음.</p>
+          </div>
+        </div>
+      </a>
+
+      <a class="category-card c-dot" href="#" aria-label="도트 그래픽">
+        <div class="card-head">
+          <div class="card-emoji">🔹</div>
+          <div>
+            <p class="card-title">도트 그래픽</p>
+            <p class="card-sub">세밀한 픽셀 조합</p>
+          </div>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>도트 그래픽</h4>
+            <p>픽셀아트와 유사하지만 세밀한 색상 조합 사용.</p>
+          </div>
+        </div>
+      </a>
+
+      <a class="category-card c-3d" href="#" aria-label="3D 그래픽">
+        <div class="card-head">
+          <div class="card-emoji">🕹️</div>
+          <div>
+            <p class="card-title">3D 그래픽</p>
+            <p class="card-sub">입체 표현</p>
+          </div>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>3D 그래픽</h4>
+            <p>입체를 가지는 그래픽으로 시점 이동 가능.</p>
+          </div>
+        </div>
+      </a>
+
+      <a class="category-card c-real" href="#" aria-label="실사형 그래픽">
+        <div class="card-head">
+          <div class="card-emoji">🖌️</div>
+          <div>
+            <p class="card-title">실사형 그래픽</p>
+            <p class="card-sub">사실적 그래픽</p>
+          </div>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>실사형 그래픽</h4>
+            <p>현실과 거의 유사한 그래픽. GTA, 배틀필드 등.</p>
+          </div>
+        </div>
+      </a>
+
+      <a class="category-card c-cel" href="#" aria-label="셀 셰이딩">
+        <div class="card-head">
+          <div class="card-emoji">🖌️</div>
+          <div>
+            <p class="card-title">셀 셰이딩</p>
+            <p class="card-sub">만화풍 3D</p>
+          </div>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>셀 셰이딩</h4>
+            <p>윤곽선이 강조된 만화풍 3D 그래픽.</p>
+          </div>
+        </div>
+      </a>
+
+      <a class="category-card c-low" href="#" aria-label="로우 폴리">
+        <div class="card-head">
+          <div class="card-emoji">🔻</div>
+          <div>
+            <p class="card-title">로우 폴리</p>
+            <p class="card-sub">단순 폴리곤</p>
+          </div>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>로우 폴리</h4>
+            <p>단순한 폴리곤으로 구성된 미니멀 3D 스타일.</p>
+          </div>
+        </div>
+      </a>
+
+      <a class="category-card c-high" href="#" aria-label="하이 폴리">
+        <div class="card-head">
+          <div class="card-emoji">🔺</div>
+          <div>
+            <p class="card-title">하이 폴리</p>
+            <p class="card-sub">정교한 3D</p>
+          </div>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>하이 폴리</h4>
+            <p>매우 많은 폴리곤으로 정교하게 표현한 3D 모델.</p>
+          </div>
+        </div>
+      </a>
+
+      <a class="category-card c-pre" href="#" aria-label="프리렌더드 그래픽">
+        <div class="card-head">
+          <div class="card-emoji">💻</div>
+          <div>
+            <p class="card-title">프리렌더드</p>
+            <p class="card-sub">미리 렌더링</p>
+          </div>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>프리렌더드 그래픽</h4>
+            <p>미리 렌더링된 배경 + 2D 캐릭터 조합.</p>
+          </div>
+        </div>
+      </a>
+
+      <a class="category-card c-2half" href="#" aria-label="2.5D 그래픽">
+        <div class="card-head">
+          <div class="card-emoji">🎲</div>
+          <div>
+            <p class="card-title">2.5D 그래픽</p>
+            <p class="card-sub">2D+3D 혼합</p>
+          </div>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>2.5D 그래픽</h4>
+            <p>2D와 3D 혼합 형태. 카메라는 3D, 오브젝트는 2D.</p>
+          </div>
+        </div>
+      </a>
+
+      <a class="category-card c-stylized" href="#" aria-label="스타일라이즈드 그래픽">
+        <div class="card-head">
+          <div class="card-emoji">🎨</div>
+          <div>
+            <p class="card-title">스타일라이즈드</p>
+            <p class="card-sub">과장된 스타일</p>
+          </div>
+        </div>
+        <div class="overlay" aria-hidden="true">
+          <div class="overlay-inner">
+            <h4>스타일라이즈드 그래픽</h4>
+            <p>현실과 다르게 과장되거나 감각적으로 표현한 스타일.</p>
+          </div>
+        </div>
+      </a>
+
+    </div>
+  </main>
+
+  <footer>
+    © 2025 Game Design Guide — Joyful Edition
+  </footer>
+</body>
+</html>
